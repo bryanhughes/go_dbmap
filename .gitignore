@@ -5,6 +5,10 @@
 *.so
 *.dylib
 
+pkg/*
+**/model/*
+proto/*
+
 # Test binary, built with `go test -c`
 *.test
 
@@ -16,3 +20,4 @@ output
 .idea/
 .vscode
 
+**/github.com/*

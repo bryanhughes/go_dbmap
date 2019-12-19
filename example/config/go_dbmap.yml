@@ -12,6 +12,7 @@ database:
 output:
   path: "output"
   suffix: "_db"
+  lang: "go"
 
 # Working with protobuffers: go_dbmap will generate either proto2 or proto3 files. It is important to
 # understand that to use go_dbmap and natively map between a relational database where NULL is an valid value and
@@ -39,25 +40,10 @@ generator:
   # schema's then it will be excluded from both.
   excluded_tables: ["excluded", "spatial_ref_sys"]
 
-  # Define which columns you want to lookup on. This generates a SELECT statement returning a map queries on the columns
-  # specified. If you are also generating the proto services, then the lookups will also map to a read request on the
-  # table if it is part of a service.
-  lookup:
-    -
-      table: "test_schema.address"
-      columns: [["address1", "address2", "city", "state", "country", "postcode"],
-                ["postcode"]]
-    -
-      table: "test_schema.user"
-      columns: [["email"]]
-    -
-      table: "product"
-      columns: [["product_name"],
-                ["sku"]]
-    -
-      table: "product_parts"
-      columns: [["product_id"],
-                ["part_id"]]
+  # Setting this to true will result in a method generated for any index whose name is prefixed with 'lookup_'. You
+  # should only apply this to non foreign key and primary key indexes those are handled differently by go_dbmap. For
+  # indexes that you do NOT want generated as accessors, do not append their name with the keyword.
+  indexed_lookups: true
 
   # There are occasionally columns that have sensitive values, like a password hash that you do not want as part of
   # the default SELECT (which in turns means they will be absent from the generated INSERT and UPDATE functions/queries).

@@ -15,7 +15,6 @@ CRUD, but search/lookup operations based on indexed fields, as well as custom ma
 
 ```
 $ sudo -u postgres createuser --pwprompt --superuser go_dbmap
-could not change directory to "/home/...": Permission denied
 Enter password for new role: go_dbmap
 Enter it again: go_dbmap
 $ psql -U go_dbmap -h localhost -c "CREATE DATABASE go_dbmap WITH OWNER = go_dbmap ENCODING = 'UTF8' TEMPLATE = template0 CONNECTION LIMIT = -1;" postgres
@@ -25,7 +24,9 @@ $ psql -U go_dbmap -h localhost -W -c "CREATE EXTENSION postgis;" go_dbmap
 #### Resetting the Example Database
 This helper script will allow you to rapidly drop and recreate your database
 
-    $ bin/reset_db.sh go_dbmap go_dbmap example/sql/example_schema.sql example/sql/example_data.sql
+NOTE: depending on your dev environment, you might have to use your own user name instead of `go_dbmap`
+
+    $ example/bin/reset_db.sh go_dbmap go_dbmap example/sql/example_schema.sql example/sql/example_data.sql
     
 #### Building the Example
 The project includes an example schema and scripts to build located in the `example` directory. You
@@ -58,45 +59,123 @@ any other time you alter your database schema.
 You will want to look at [example/config/go_dbmap.config](example/config/go_dbmap.config) as a guide
 for your own YAML config. It gives a complete example with inline documentation of the current functionality of the tool.
 
+`go_dbmap` provides you a lot of options for how to generate the code. As mentioned previously, `go_dbmap`
+supports database objects that span multiple schema's. To generate code against them, simply include all the
+schema's in a list. 
+
+**Please note**, if your application dynamically generates schema's as a pattern for supporting multi-tenancy where
+each schema is owned by a tenant, this tool will not work as it requires schema's and tables that have been statically
+created.
+
 ```yaml
-  lookup:
-    -
-      table: "test_schema.address"
-      columns: [["address1", "address2", "city", "state", "country", "postcode"],
-                ["postcode"]]
+  schemas: ["public", "test_schema"]
+```
+
+Often, there might be meta tables or other tables that you to exclude (such as the supporting tables installed 
+from the postgis extension). Simply list the tables. Note that all tables support the explicit "schema.table" 
+naming. If the schema portion is left out, then "public" is defaulted.
+
+```yaml
+   excluded_tables: ["excluded", "spatial_ref_sys"]
+```
+
+`go_dbmap` provides a feature to generate all the lookup accessors based on defined indexes in the schema.
+```yaml
+  indexed_lookups: true
+```
+
+There are occasionally columns that have sensitive values, like a password hash that you do not want as part of
+the default SELECT (which in turns means they will be absent from the generated INSERT and UPDATE functions/queries).
+excluded_columns:
+
+```yaml
     -
       table: "test_schema.user"
-      columns: [["email"]]
+      columns: ["pword_hash", "geog"]
 ```
-This configuration will generate two `lookup/1` functions on the `address` module. It is advised that you have matching indexes on the
-table covering the columns. The second config will generate a lookup that covers the three columns so a corresponding 
-composite index will be required.
 
-The more complex feature of `go_dbmap` is the ability to apply transformations or sql functions. If you are using PostGIS,
-or need to apply other functions, you will need to use this feature.
+One of the more powerful features of `go_dbmap` is the ability to define SQL queries and have them mapped to 
+methods. These are called custom mappings. You can use these to hide operations on sensitive columns such as a
+password hash that you do not want exposed through the type struct and common CRUD operation, which is often
+exposed to your API.
 
+Custom query mappings will generate a function that will return a result map of column/value from the provided
+query. For UPDATE and DELETE, it will return the operations response. If you have any questions, you can build the
+example code and review the generated code.
+
+```yaml
+  mapping:
+    -
+      table: "test_schema.user"
+      queries:
+        -
+          name: "get_pword_hash"
+          query: "SELECT pword_hash FROM test_schema.user WHERE email = $1"
+        -
+          name: "update_pword_hash"
+          query: "UPDATE test_schema.user SET pword_hash = $2 WHERE email = $1"
 ```
-{transforms, [
-    {"test_schema.user", [
-        {insert, [{"geog", "ST_POINT($lat, $lon)::geography"}]},
-        {update, [{"geog", "ST_POINT($lat, $lon)::geography"}]},
-        {select, [{"lat", "ST_Y(geog::geometry)"},
-                  {"lon", "ST_X(geog::geometry)"}]}]},
-    {"public.foo", [
-        {select, [{"foobar", "1"}]}]}
-]}.
+
+Finally `go_dbmap` supports applying transformations to values as they are read and written from the data 
+mapping code to the table. A good use of this would be to convert the geog value from postgis to lat and lng. 
+While you can do custom query mappings to get the lat,lng, this will put the logic in the CRUD. Because 
+`go_dbmap` operates against database SQL operations, it only support transformations between columns that 
+can be legally defined by SQL. This implementation is not terrible sophisticated, it is important to understand 
+that record map for the specified table is defined by the SELECT statement, which are all the columns except 
+those specifically excluded. This means that when you specify a select transform, if those columns do not 
+exist in the table, they will generated in the record map and returned on each read. This means than you 
+can then use those virtual columns generated by the SELECT/READ to then be used on any writes (INSERT/UPDATE). 
+The following demonstrates how to support lat,lon in with a postgis geography column.
+
+***NOTE:*** any columns that are referenced in a function must be preceded by a `$`
+```yaml
+  transforms:
+    -
+      table: "test_schema.user"
+      xforms:
+        # For the select transform, we need to know the datatype of the product of the transform. This is needed for
+        # generating the protobufs
+        select:
+          -
+            column: "lat"
+            data_type: "decimal"
+            xform: "ST_Y(geog::geometry)"
+          -
+            column: "lon"
+            data_type: "decimal"
+            xform: "ST_X(geog::geometry)"
+        insert:
+          -
+            column: "geog"
+            data_type: "geography"
+            xform: "ST_POINT($lat, $lon)::geography"
+        update:
+          -
+            column: "geog"
+            data_type: "geography"
+            xform: "ST_POINT($lat, $lon)::geography"
+    -
+      table: "public.foo"
+      xforms:
+        select:
+          -
+            column: "foobar"
+            data_type: "integer"
+            xform: "1"
 ```
+
 Following the same pattern of a list of tables with a list of tuples. In the case of converting a `lat` and `lon` to a 
 `geography`, you must define each of the operations insert/create, update, and select/read on how the column values will
 be handled to and from the database. The result is that the columns `lat` and `lon` will be generated as `virtual` 
 columns in the mapping. Note that when referencing them in the function body (the second element of the tuple), you will
 need to prepend them with the `$` so that `go_dbmap` knows they are the virtual columns being operated on. 
-For the `insert` operation, a single tuple is defined which will
-result in the extension function `ST_POINT($lat, $lon)::geography` to be applied to the bind values of the `INSERT` 
-statement. Resulting in the following code:
 
-```erlang
--define(INSERT, "INSERT INTO test_schema.user (first_name, last_name, email, user_token, enabled, change_id, geog) VALUES ($1, $2, $3, $4, $5, 0, ST_POINT($6, $7)::geography) RETURNING user_id").
+For the `insert` operation, a single tuple is defined which will result in the extension function 
+`ST_POINT($lat, $lon)::geography` to be applied to the bind values of the `INSERT` statement. Resulting in the 
+following code:
+
+```gotemplate
+    const insertStr = "INSERT INTO test_schema.user (first_name, last_name, email, user_token, enabled, aka_id, geog) VALUES ($1, $2, $3, $4, $5, $6, ST_POINT($7, $8)::geography) RETURNING user_id, first_name, last_name, email, user_token, enabled, aka_id, ST_Y(geog::geometry) AS lat, ST_X(geog::geometry) AS lon"
 ```
 and
 ```
@@ -112,52 +191,11 @@ create(_M) ->
     {error, invalid_map}.
 ```
 
-I would recommend that you build the example project and then review the generated code for `user_db.erl` to get a better
+I would recommend that you build the example project and then review the generated code for `user_db.go` to get a better
 understanding.
 
-#### The special change_id column
-The go_dbmap framework implements all the necessary code to support tracking changes to a table that has a column called 
-`change_id`. When a table has this column, go_dbmap will generate code that will automatically handle updating the 
-column value on a good update, as well as guard against updating the table from a stale map. If the current value of
-`change_id` is `100` and you attempt to update using a map that has the change_id value of 90, the update will return
-with `not_found`, otherwise update returns `{ok, Map}`.
-
-In our example database, the `user` table has a column named `change_id`. 
-```
--define(UPDATE, "UPDATE test_schema.user SET first_name=$2, last_name=$3, email=$4, user_token=$5, enabled=$6, aka_id=$7, change_id=change_id + 1, geog=ST_POINT($9, $10)::geography WHERE user_id=$1 AND change_id<=$8 RETURNING user_id, first_name, last_name, email, user_token, enabled, aka_id, change_id, ST_Y(geog::geometry) AS lat, ST_X(geog::geometry) AS lon").
-```
-
-This results in the following code generation and logic for UPDATES. Please note that the INSERT sql and code is also different.
-```
-update(M = #{user_id := UserId, first_name := FirstName, last_name := LastName, email := Email, user_token := UserToken, enabled := Enabled, aka_id := AkaId, change_id := ChangeId, lat := Lat, lon := Lon}) when is_map(M) ->
-    Params = [UserId, FirstName, LastName, Email, UserToken, Enabled, AkaId, ChangeId, Lat, Lon],
-    case pgo:query(?UPDATE, Params, #{decode_opts => [{return_rows_as_maps, true}, {column_name_as_atom, true}]}) of
-        #{command := update, num_rows := 0} ->
-            not_found;
-        #{command := update, num_rows := 1, rows := [Row]} ->
-            {ok, Row};
-        {error, Reason} ->
-            {error, Reason}
-    end;
-update(_M) ->
-    {error, invalid_map}.
-```
-
-### erleans/pgo
-
-Finally, `go_dbmap` uses [erleans/pgo](https://github.com/erleans/pgo) for its Postgres connectivity (which is currently)
-the only supported database. If you want the pgo client to return UUID as binary strings, set an application environment
-variable or in your sys.config:
-
-    {pg_types, {uuid, string}},
-
-    {pgo, [{pools, [{default, #{pool_size => 10,
-                                host => "127.0.0.1",
-                                database => "go_dbmap",
-                                user => "go_dbmap",
-                                password => "go_dbmap"}}]}]}
-
-Size the pool according to your requirements.    
+The more complex feature of `go_dbmap` is the ability to apply transformations or sql functions. If you are using PostGIS,
+or need to apply other functions, you will need to use this feature.
     
 Generating Protobuffers
 ---
@@ -165,10 +203,9 @@ go_dbmap will generate protobuffers that map to the relational schema including 
 correctly handles relationships across schemas. 
 
 *TODO:*
-While the tool will handle many-to-many relationships through the 
-join table, it does not yet add the relating message in the referencing message. For example if the join table is many
-customers with many addresses, the tool does not yet pull the many addresses into the customer message as a repeating
-Address message.  
+While the tool will handle many-to-many relationships through the join table, it does not yet add the relating message 
+in the referencing message. For example if the join table is many customers with many addresses, the tool does not yet 
+pull the many addresses into the customer message as a repeating Address message.  
 
 The package for each proto will be the schema that the table is located in. The `.proto` files will be generated in 
 the `output` directory specified in the config file with those proto to table mappings being written to a subdirectory 
@@ -184,9 +221,7 @@ It is recommended that you download and install the protocol buffer compiler. If
 
 Using In Your Project
 ---
-You will need to include the deps in your `rebar.config`:
-
-    {go_dbmap, {git, "https://github.com/bryanhughes/go_dbmap.git", {branch, "master"}}},
+...
 
 Next, create your `go_dbmap.config`. You can simply copy and modify the one in the repo. Also, copy and rename
 the `example/bin/build_example.sh` and move it into your `bin` or other directory. Run it once to generate the 
