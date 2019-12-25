@@ -6,7 +6,6 @@
 *.dylib
 
 pkg/*
-**/model/*
 proto/*
 
 # Test binary, built with `go test -c`
