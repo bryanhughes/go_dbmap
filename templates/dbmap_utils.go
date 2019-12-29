@@ -1,4 +1,4 @@
-package dbmap
+package model
 
 import (
 	"database/sql"

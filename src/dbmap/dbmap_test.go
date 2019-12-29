@@ -6,7 +6,7 @@ import (
 
 func TestReadConfig(t *testing.T) {
 	var cfg Config
- 	ReadFile(&cfg, "test_config.yaml")
+ 	ReadFile(&cfg, "test_config.yml")
 
 	testDatabase(cfg, t)
 	testOutput(cfg, t)

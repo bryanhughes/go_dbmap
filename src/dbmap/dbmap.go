@@ -2,10 +2,14 @@ package dbmap
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"gopkg.in/yaml.v3"
+	"log"
 	"os"
 )
+
+var InvalidArguments = errors.New("invalid argument")
 
 // The expected YAML configuration for generating code based on a database schema
 type Config struct {
@@ -69,8 +73,9 @@ type Config struct {
 type Index struct {
 	TableSchema string
 	TableName   string
+	IndexName   string
 	IndexType   string
-	Columns     []Column
+	Columns     []string
 }
 
 // The structure of a column
@@ -91,7 +96,6 @@ type Column struct {
 type Table struct {
 	TableName   string
 	TableSchema string
-	TableType   string
 	Columns     []Column
 	Indexes     []Index
 }
@@ -108,20 +112,8 @@ type Database struct {
 	Schemas		[]Schema
 }
 
-type DatabaseReader interface {
-	ReadDatabase() Database
-}
-
-type CodeGenerator interface {
-	generateCode()
-}
-
 type Provider interface {
-	DatabaseReader
-}
-
-func GenerateCode(database Database) {
-
+	ReadDatabase() *Database
 }
 
 func ReadFile(cfg *Config, configFile string) {
@@ -141,4 +133,45 @@ func ReadFile(cfg *Config, configFile string) {
 func processError(err error) {
 	fmt.Println(err)
 	os.Exit(2)
+}
+
+func ReadResults(rows *sql.Rows, err error) (results []map[string]interface{}, err_out error) {
+	if err != nil {
+		log.Print(err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	results = make([]map[string]interface{}, 0)
+	cols, _ := rows.Columns()
+	for rows.Next() {
+		columns := make([]interface{}, len(cols))
+		columnPointers := make([]interface{}, len(cols))
+		for i := range columns {
+			columnPointers[i] = &columns[i]
+		}
+
+		if err := rows.Scan(columnPointers...); err != nil {
+			log.Print(err)
+			return nil, err
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Print(err)
+			return nil, err
+		}
+
+		m := make(map[string]interface{})
+		for i, colName := range cols {
+			val := columnPointers[i].(*interface{})
+			m[colName] = *val
+		}
+		results = append(results, m)
+	}
+
+	return results, nil
+}
+
+func GenerateCode(database *Database) {
+
 }

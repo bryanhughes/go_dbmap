@@ -8,14 +8,14 @@ import (
 )
 
 // Standard CRUD
-const selectWithLimitStr = "SELECT user_id, first_name, last_name, email, user_token, enabled, aka_id, ST_Y(geog::geometry) AS lat, ST_X(geog::geometry) AS lon FROM test_schema.user LIMIT $1 OFFSET $2"
-const selectStr = "SELECT user_id, first_name, last_name, email, user_token, enabled, aka_id, ST_Y(geog::geometry) AS lat, ST_X(geog::geometry) AS lon FROM test_schema.user WHERE user_id=$1"
-const insertStr = "INSERT INTO test_schema.user (first_name, last_name, email, user_token, enabled, aka_id, geog) VALUES ($1, $2, $3, $4, $5, $6, ST_POINT($7, $8)::geography) RETURNING user_id, first_name, last_name, email, user_token, enabled, aka_id, ST_Y(geog::geometry) AS lat, ST_X(geog::geometry) AS lon"
-const updateStr = "UPDATE test_schema.user SET first_name=$2, last_name=$3, email=$4, user_token=$5, enabled=$6, aka_id=$7, geog=ST_POINT($8, $9)::geography WHERE user_id=$1 RETURNING user_id, first_name, last_name, email, user_token, enabled, aka_id, ST_Y(geog::geometry) AS lat, ST_X(geog::geometry) AS lon"
+const selectWithLimitStr = "SELECT user_id, first_name, last_name, email, user_token, enabled, aka_id, ST_X(geog::geometry) AS lon, ST_Y(geog::geometry) AS lat FROM test_schema.user LIMIT $1 OFFSET $2"
+const selectStr = "SELECT user_id, first_name, last_name, email, user_token, enabled, aka_id, ST_X(geog::geometry) AS lon, ST_Y(geog::geometry) AS lat FROM test_schema.user WHERE user_id=$1"
+const insertStr = "INSERT INTO test_schema.user (first_name, last_name, email, user_token, enabled, aka_id, geog) VALUES ($1, $2, $3, $4, $5, $6, ST_POINT($7, $8)::geography) RETURNING user_id, first_name, last_name, email, user_token, enabled, aka_id, ST_X(geog::geometry) AS lon, ST_Y(geog::geometry) AS lat"
+const updateStr = "UPDATE test_schema.user SET first_name=$2, last_name=$3, email=$4, user_token=$5, enabled=$6, aka_id=$7, geog=ST_POINT($8, $9)::geography WHERE user_id=$1 RETURNING user_id, first_name, last_name, email, user_token, enabled, aka_id, ST_X(geog::geometry) AS lon, ST_Y(geog::geometry) AS lat"
 const deleteStr = "DELETE FROM test_schema.user WHERE user_id=$1"
 
 // Lookups/Search
-const lookupEmailStr = "SELECT user_id, first_name, last_name, email, user_token, enabled, aka_id, ST_Y(geog::geometry) AS lat, ST_X(geog::geometry) AS lon FROM test_schema.user WHERE email=$1"
+const lookupEmailStr = "SELECT user_id, first_name, last_name, email, user_token, enabled, aka_id, ST_X(geog::geometry) AS lon, ST_Y(geog::geometry) AS lat FROM test_schema.user WHERE email=$1"
 
 // Custom Mappings
 var customMappings = map[string]string{
@@ -26,7 +26,7 @@ var customMappings = map[string]string{
 	"EnableUser":         "UPDATE test_schema.user SET enabled = true WHERE email = $1",
 	"DeleteUserByEmail":  "DELETE FROM test_schema.user WHERE email = $1",
 	"SetToken":           "UPDATE test_schema.user SET user_token = uuid_generate_v4() WHERE user_id = $1 RETURNING user_token",
-	"FindNearest":        "SELECT address_id, address1, address2, city, state, country, postcode, ST_X(geog::geometry) AS lon, ST_Y(geog::geometry) AS lat FROM address WHERE ST_DWithin( geog, Geography(ST_MakePoint($1, $2)), $3 ) AND lat != 0.0 AND lng != 0.0 ORDER BY geog <-> ST_POINT($1, $2)::geography",
+	"FindNearest":        "SELECT user_id, ST_X(geog::geometry) AS lon, ST_Y(geog::geometry) AS lat FROM test_schema.user WHERE ST_DWithin( geog, Geography(ST_MakePoint($1, $2)), $3 ) AND ST_X(geog::geometry) != 0.0 AND ST_Y(geog::geometry) != 0.0 ORDER BY geog <-> ST_POINT($1, $2)::geography",
 }
 
 type nullableUser struct {
@@ -83,6 +83,7 @@ func fromNullableUser(user *User, nUser nullableUser) {
 	user.Lon = model.SetFloat64(nUser.lon)
 }
 
+// Create
 func (m *User) Create(db *sql.DB) (err error) {
 	if err := validateNotNulls(m); err != nil {
 		log.Print(err)
@@ -99,7 +100,7 @@ func (m *User) Create(db *sql.DB) (err error) {
 
 	var returning = nullableUser{}
 	rows.Next()
-	if err := rows.Scan(&returning.userId, &returning.firstName, &returning.lastName, &returning.email, &returning.userToken, &returning.enabled, &returning.akaId, &returning.lat, &returning.lon); err != nil {
+	if err := rows.Scan(&returning.userId, &returning.firstName, &returning.lastName, &returning.email, &returning.userToken, &returning.enabled, &returning.akaId, &returning.lon, &returning.lat); err != nil {
 		log.Print(err)
 		return err
 	}
@@ -132,7 +133,7 @@ func (m *User) Read(db *sql.DB, userId *int32) (err error) {
 
 	var returning = nullableUser{}
 	if rows.Next() {
-		if err := rows.Scan(&returning.userId, &returning.firstName, &returning.lastName, &returning.email, &returning.userToken, &returning.enabled, &returning.akaId, &returning.lat, &returning.lon); err != nil {
+		if err := rows.Scan(&returning.userId, &returning.firstName, &returning.lastName, &returning.email, &returning.userToken, &returning.enabled, &returning.akaId, &returning.lon, &returning.lat); err != nil {
 			log.Print(err)
 			return err
 		}
@@ -166,7 +167,7 @@ func (m *User) Update(db *sql.DB) (err error) {
 
 	var returning = nullableUser{}
 	rows.Next()
-	if err := rows.Scan(&returning.userId, &returning.firstName, &returning.lastName, &returning.email, &returning.userToken, &returning.enabled, &returning.akaId, &returning.lat, &returning.lon); err != nil {
+	if err := rows.Scan(&returning.userId, &returning.firstName, &returning.lastName, &returning.email, &returning.userToken, &returning.enabled, &returning.akaId, &returning.lon, &returning.lat); err != nil {
 		log.Print(err)
 		return err
 	}
@@ -203,12 +204,7 @@ func ListUsers(db *sql.DB, limit int32, offset int32) (user []User, count int32,
 	var returning = nullableUser{}
 	for rows.Next() {
 		user := User{}
-		if err := rows.Scan(&returning.userId, &returning.firstName, &returning.lastName, &returning.email, &returning.userToken, &returning.enabled, &returning.akaId, &returning.lat, &returning.lon); err != nil {
-			log.Print(err)
-			return []User{}, 0, err
-		}
-
-		if err := rows.Err(); err != nil {
+		if err := rows.Scan(&returning.userId, &returning.firstName, &returning.lastName, &returning.email, &returning.userToken, &returning.enabled, &returning.akaId, &returning.lon, &returning.lat); err != nil {
 			log.Print(err)
 			return []User{}, 0, err
 		}
@@ -231,7 +227,7 @@ func (m *User) LookupEmail(db *sql.DB, email *string) (err error) {
 
 	var returning = nullableUser{}
 	if rows.Next() {
-		if err := rows.Scan(&returning.userId, &returning.firstName, &returning.lastName, &returning.email, &returning.userToken, &returning.enabled, &returning.akaId, &returning.lat, &returning.lon); err != nil {
+		if err := rows.Scan(&returning.userId, &returning.firstName, &returning.lastName, &returning.email, &returning.userToken, &returning.enabled, &returning.akaId, &returning.lon, &returning.lat); err != nil {
 			log.Print(err)
 			return err
 		}
@@ -259,8 +255,8 @@ func UpdatePasswordHash(db *sql.DB, value1 *string, value2 []byte) (count int64,
 	}
 }
 
-func GetPasswordHash(db *sql.DB, value1 *string) (results []map[string]interface{}, err error) {
-	rows, err := db.Query(customMappings["GetPasswordHash"], value1)
+func GetPasswordHash(db *sql.DB, hash *string) (results []map[string]interface{}, err error) {
+	rows, err := db.Query(customMappings["GetPasswordHash"], hash)
 	if err != nil {
 		log.Print(err)
 		return nil, err
@@ -272,7 +268,7 @@ func GetPasswordHash(db *sql.DB, value1 *string) (results []map[string]interface
 	for rows.Next() {
 		columns := make([]interface{}, len(cols))
 		columnPointers := make([]interface{}, len(cols))
-		for i, _ := range columns {
+		for i := range columns {
 			columnPointers[i] = &columns[i]
 		}
 
@@ -297,3 +293,117 @@ func GetPasswordHash(db *sql.DB, value1 *string) (results []map[string]interface
 	return results, nil
 }
 
+
+func FindNearest(db *sql.DB, lon float64, lat float64, radius int64) (results []map[string]interface{}, err error) {
+	rows, err := db.Query(customMappings["FindNearest"], lon, lat, radius)
+	if err != nil {
+		log.Print(err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	results = make([]map[string]interface{}, 0)
+	cols, _ := rows.Columns()
+	for rows.Next() {
+		columns := make([]interface{}, len(cols))
+		columnPointers := make([]interface{}, len(cols))
+		for i := range columns {
+			columnPointers[i] = &columns[i]
+		}
+
+		if err := rows.Scan(columnPointers...); err != nil {
+			log.Print(err)
+			return nil, err
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Print(err)
+			return nil, err
+		}
+
+		m := make(map[string]interface{})
+		for i, colName := range cols {
+			val := columnPointers[i].(*interface{})
+			m[colName] = *val
+		}
+		results = append(results, m)
+	}
+
+	return results, nil
+}
+
+func SetToken(db *sql.DB, userId int32) (results []map[string]interface{}, err error) {
+	rows, err := db.Query(customMappings["SetToken"], userId)
+	if err != nil {
+		log.Print(err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	results = make([]map[string]interface{}, 0)
+	cols, _ := rows.Columns()
+	for rows.Next() {
+		columns := make([]interface{}, len(cols))
+		columnPointers := make([]interface{}, len(cols))
+		for i := range columns {
+			columnPointers[i] = &columns[i]
+		}
+
+		if err := rows.Scan(columnPointers...); err != nil {
+			log.Print(err)
+			return nil, err
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Print(err)
+			return nil, err
+		}
+
+		m := make(map[string]interface{})
+		for i, colName := range cols {
+			val := columnPointers[i].(*interface{})
+			m[colName] = *val
+		}
+		results = append(results, m)
+	}
+
+	return results, nil
+}
+
+func DisableUser(db *sql.DB, userId int32) (results []map[string]interface{}, err error) {
+	rows, err := db.Query(customMappings["DisableUser"], userId)
+	if err != nil {
+		log.Print(err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	results = make([]map[string]interface{}, 0)
+	cols, _ := rows.Columns()
+	for rows.Next() {
+		columns := make([]interface{}, len(cols))
+		columnPointers := make([]interface{}, len(cols))
+		for i := range columns {
+			columnPointers[i] = &columns[i]
+		}
+
+		if err := rows.Scan(columnPointers...); err != nil {
+			log.Print(err)
+			return nil, err
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Print(err)
+			return nil, err
+		}
+
+		m := make(map[string]interface{})
+		for i, colName := range cols {
+			val := columnPointers[i].(*interface{})
+			m[colName] = *val
+		}
+		results = append(results, m)
+	}
+
+	return results, nil
+}

@@ -1,4 +1,4 @@
-package postgres
+package mariadb
 
 import (
 	"database/sql"
@@ -6,7 +6,6 @@ import (
 	"fmt"
 	_ "github.com/lib/pq"
 	"log"
-	"time"
 )
 
 const selectTables = "SELECT * FROM information_schema.tables WHERE table_schema = $1 AND table_name NOT IN ($2)"
@@ -65,7 +64,7 @@ type Provider struct {
 	dbmap.Config
 }
 
-func (provider *Provider) ReadDatabase() dbmap.Database {
+func (provider *Provider) ReadDatabase() *dbmap.Database {
 	schemaNames := provider.Generator.Schemas
 	schemas := make([]dbmap.Schema, len(schemaNames))
 
@@ -78,7 +77,7 @@ func (provider *Provider) ReadDatabase() dbmap.Database {
 	}
 
 	database := dbmap.Database{DB: db, Schemas: schemas}
-	return database
+	return &database
 }
 
 func initDB(provider *Provider) *sql.DB {
@@ -94,10 +93,6 @@ func initDB(provider *Provider) *sql.DB {
 	if err != nil {
 		log.Panic(err)
 	}
-
-	db.SetMaxOpenConns(5)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(time.Hour)
 
 	if err = db.Ping(); err != nil {
 		log.Panic(err)

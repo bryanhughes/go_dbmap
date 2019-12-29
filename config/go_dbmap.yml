@@ -15,14 +15,13 @@ output:
   lang: "go"
 
 # Working with protobuffers: go_dbmap will generate either proto2 or proto3 files. It is important to
-# understand that to use go_dbmap and natively map between a relational database where NULL is an valid value and
-# is intrinsic to relational normal form. Using surrogate sequences/serial values as primary keys is common. Having a
-# 0, 1, or many relationship requires that a foreign key value be null, not a default value of 0 (for the scalar type
-# int for the serial datatype). go_dbmap does translate foreign relationships as embedded messages as this also starts
-# to become problematic in that you can be pushing a great deal of data just to a client just to display a list of
-# account names.
+# understand that you should specify proto2 when mapping between a relational database where NULL is an valid value and
+# is intrinsic to relational normal form, and protobuffers. Using surrogate sequences/serial values as primary keys is
+# common. Having a 0, 1, or many relationship requires that a foreign key value be null, not a default value of 0 (for
+# the scalar typeint for the serial datatype). go_dbmap does translate foreign relationships as embedded messages as
+# this also starts to become problematic in that you can be pushing a great deal of data just to a client just to
+# display a list of account names.
 
-# Exclude to not generate the .proto files.
 proto:
   path: "output/proto"
   java_package: "com.example"
@@ -30,7 +29,7 @@ proto:
 
 # go_dbmap will read all the tables in one or more schema's. When generating the Go code, each module will be
 # written to a subdirectory with the schema name. So if your output is 'output', then your code will be
-# 'output/public/foo.erl' and 'output/test_schema/foo.erl' respectively. Please note that go_dbmap supports tables
+# 'output/public/foo.go' and 'output/test_schema/foo.go' respectively. Please note that go_dbmap supports tables
 # with the same name in different schemas with foreign relationships between them.
 
 generator:
@@ -38,15 +37,18 @@ generator:
 
   # A list of tables to exclude from the schemas being read. NOTE that currently, if the excluding tables exist in both
   # schema's then it will be excluded from both.
+
   excluded_tables: ["excluded", "spatial_ref_sys"]
 
   # Setting this to true will result in a method generated for any index whose name is prefixed with 'lookup_'. You
   # should only apply this to non foreign key and primary key indexes those are handled differently by go_dbmap. For
   # indexes that you do NOT want generated as accessors, do not append their name with the keyword.
+
   indexed_lookups: true
 
   # There are occasionally columns that have sensitive values, like a password hash that you do not want as part of
   # the default SELECT (which in turns means they will be absent from the generated INSERT and UPDATE functions/queries).
+
   excluded_columns:
     -
       table: "test_schema.user"
@@ -55,40 +57,41 @@ generator:
   # Custom query mapping. This will generate a function that will return a result map of column/value from the provided
   # query. For UPDATE and DELETE, it will return the operations response. If you have any questions, you can build the
   # example code and review the generated code.
+
   mapping:
     -
       table: "test_schema.user"
       queries:
         -
           name: "update_pword_hash"
-          query: "UPDATE test_schema.user SET pword_hash = $2:string WHERE email = $1:string"
+          query: "UPDATE test_schema.user SET pword_hash = $pwordHash:string WHERE email = $email:string"
         -
           name: "get_pword_hash"
-          query: "SELECT pword_hash FROM test_schema.user WHERE email = $1:string"
+          query: "SELECT pword_hash FROM test_schema.user WHERE email = $email:string"
         -
           name: "reset_pword_hash"
-          query: "UPDATE test_schema.user SET pword_hash = NULL WHERE email = $1:string"
+          query: "UPDATE test_schema.user SET pword_hash = NULL WHERE email = $email:string"
         -
           name: "disable_user"
-          query: "UPDATE test_schema.user SET enabled = false WHERE email = $1:string"
+          query: "UPDATE test_schema.user SET enabled = false WHERE email = $email:string"
         -
           name: "enable_user"
-          query: "UPDATE test_schema.user SET enabled = true WHERE email = $1:string"
+          query: "UPDATE test_schema.user SET enabled = true WHERE email = $email:string"
         -
           name: "delete_user_by_email"
-          query: "DELETE FROM test_schema.user WHERE email = $1:string"
+          query: "DELETE FROM test_schema.user WHERE email = $email:string"
         -
           name: "set_token"
-          query: "UPDATE test_schema.user SET user_token = uuid_generate_v4() WHERE user_id = $1:int32 RETURNING user_token"
+          query: "UPDATE test_schema.user SET user_token = uuid_generate_v4() WHERE user_id = $userId:int32 RETURNING user_token"
         -
           name: "find_nearest"
-          query: "SELECT *, ST_X(geog::geometry) AS lon, ST_Y(geog::geometry) AS lat FROM address WHERE ST_DWithin( geog, Geography(ST_MakePoint($1:float, $2:float)), $3:int32 ) AND lat != 0.0 AND lng != 0.0 ORDER BY geog <-> ST_POINT($1:float, $2:float)::geography"
+          query: "SELECT user_id, ST_X(geog::geometry) AS lon, ST_Y(geog::geometry) AS lat FROM test_schema.user WHERE ST_DWithin( geog, Geography(ST_MakePoint($lon:float64, $lat:float64)), $radius:int32 ) AND ST_X(geog::geometry) != 0.0 AND ST_Y(geog::geometry) != 0.0 ORDER BY geog <-> ST_POINT($lon:float64, $lat:float64)::geography"
     -
       table: "part"
       queries:
         -
           name: "get_product"
-          query: "SELECT p1.* FROM product p1, product_parts pp, part p WHERE p1.product_id = pp.product_id AND pp.part_id = p.part_id AND p.part_name = $1:int32"
+          query: "SELECT p1.* FROM product p1, product_parts pp, part p WHERE p1.product_id = pp.product_id AND pp.part_id = p.part_id AND p.part_name = $partName:string"
 
 
   # go_dbmap supports applying transformations to values as they are read and written from the data mapping code to the
@@ -121,12 +124,12 @@ generator:
           -
             column: "geog"
             data_type: "geography"
-            xform: "ST_POINT($lat, $lon)::geography"
+            xform: "ST_POINT($lon, $lat)::geography"
         update:
           -
             column: "geog"
             data_type: "geography"
-            xform: "ST_POINT($lat, $lon)::geography"
+            xform: "ST_POINT($lon, $lat)::geography"
     -
       table: "public.foo"
       xforms:

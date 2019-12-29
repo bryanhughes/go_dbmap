@@ -3,9 +3,9 @@ package test_schema
 import (
 	"database/sql"
 	"dbmap"
+	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
-	_ "github.com/google/uuid"
 	_ "github.com/lib/pq"
 	"log"
 	"os"
@@ -81,8 +81,8 @@ func cleanTables(db *sql.DB, tables []string) error {
 	return nil
 }
 
-func TestCreate(t *testing.T) {
-	t.Log("----------- TestCreate start -----------")
+func TestAll(t *testing.T) {
+	t.Log("----------- TestAll start -----------")
 
 	teardownTestCase := setupTestCase(t)
 	defer teardownTestCase(t)
@@ -98,6 +98,11 @@ func TestCreate(t *testing.T) {
 		{FirstName: proto.String("Alice"), LastName: proto.String("Tenfeet"), Email: proto.String("alice@tenfeet.com"), UserToken: toPointer(newUUID().String()), Enabled: &enabled},
 		{FirstName: proto.String("Mary"), LastName: proto.String("Littlelamb"), Email: proto.String("mary@gmail.com"), UserToken: toPointer(newUUID().String()), Enabled: &enabled},
 	}
+
+	// For updating
+	fName := "Yeti"
+	lat := 37.763964
+	lon := -122.388983
 
 	var err error
 	var user *User
@@ -119,9 +124,9 @@ func TestCreate(t *testing.T) {
 			t.Fatal("user an user1 are not equal")
 		}
 
-		fName := "Yeti"
-		lat := 37.763964
-		lon := -122.388983
+		fName = fmt.Sprintf("%s-%d", fName, i)
+		lat += .00001
+		lon += .00001
 
 		user1.FirstName = &fName
 		user1.Lat = &lat
@@ -187,12 +192,52 @@ func TestCreate(t *testing.T) {
 	var results []map[string]interface{}
 	results, err = GetPasswordHash(db, user.Email)
 	if results == nil {
-		t.Fatal("Expected a non nil result")
+		t.Fatalf("Expected a non nil result - %s", err)
 	}
 
 	v := results[0]["pword_hash"]
 	if ! reflect.DeepEqual(v, bvalue) {
 		t.Fatalf("Got %s instead of %s", v, u)
+	}
+
+	results, err = FindNearest(db, -122.388983, 37.763964, 5 )
+	if results == nil {
+		t.Fatalf("Expected a non nil result - %s", err)
+	}
+
+	if len(results) != 3 {
+		t.Fatal("Expected 3 results")
+	}
+
+	user = &cases[0]
+	var v1 = results[0]["user_id"].(int64)
+	var v2 = *user.UserId
+	if int32(results[0]["user_id"].(int64)) != v2 {
+		t.Fatalf("Got %d instead of %d", v1, *user.UserId)
+	}
+
+	results, err = SetToken(db, *user.UserId )
+	if results == nil {
+		t.Fatalf("Expected a non nil result - %s", err)
+	}
+
+	if len(results) != 1 {
+		t.Fatal("Expected 1 results")
+	}
+
+	var v3 = results[0]["user_token"].([]byte)
+	var v4 = string(v3)
+	if len(v4) != 36 {
+		t.Fatal("Expected a UUID string which is 36 byte/chars")
+	}
+
+	results, err = DisableUser(db, *user.UserId )
+	if results == nil {
+		t.Fatalf("Expected a non nil result - %s", err)
+	}
+
+	if len(results) != 0 {
+		t.Fatal("Should of had no results (i.e. no 'RETURNING' or 'SELECT' was in the query")
 	}
 
 	// Test delete
@@ -215,5 +260,5 @@ func TestCreate(t *testing.T) {
 		}
 	}
 
-	t.Log("----------- TestCreate done -----------")
+	t.Log("----------- TestAll done -----------")
 }

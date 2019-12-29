@@ -2,10 +2,10 @@ package main
 
 import (
 	"dbmap"
+	"dbmap/mariadb"
+	"dbmap/postgres"
 	"fmt"
-	"mariadb"
 	"os"
-	"postgres"
 )
 
 

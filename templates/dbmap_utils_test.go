@@ -1,14 +1,15 @@
-package dbmap
+package model
 
 import (
 	"database/sql"
+	"model"
 	"testing"
 	"time"
 )
 
 func TestSetNullBool(t *testing.T) {
 	b := true
-	nullBool := SetNullBool(&b)
+	nullBool := model.SetNullBool(&b)
 	if nullBool.Valid != true {
 		t.Error("expected true got false")
 	}
@@ -18,7 +19,7 @@ func TestSetNullBool(t *testing.T) {
 	}
 
 	b = false
-	nullBool = SetNullBool(&b)
+	nullBool = model.SetNullBool(&b)
 	if nullBool.Valid != true {
 		t.Error("expected true got false")
 	}
@@ -27,7 +28,7 @@ func TestSetNullBool(t *testing.T) {
 		t.Error("expected false got true")
 	}
 
-	nullBool = SetNullBool(nil)
+	nullBool = model.SetNullBool(nil)
 	if nullBool.Valid != false {
 		t.Error("expected false got true")
 	}
@@ -42,7 +43,7 @@ func TestSetBool(t *testing.T) {
 		Bool:  true,
 		Valid: true,
 	}
-	b := SetBool(nullBool)
+	b := model.SetBool(nullBool)
 	if *b != true {
 		t.Error("expected true got false")
 	}
@@ -51,7 +52,7 @@ func TestSetBool(t *testing.T) {
 		Bool:  false,
 		Valid: true,
 	}
-	b = SetBool(nullBool)
+	b = model.SetBool(nullBool)
 	if *b != false {
 		t.Error("expected false got true")
 	}
@@ -60,7 +61,7 @@ func TestSetBool(t *testing.T) {
 		Bool:  false,
 		Valid: false,
 	}
-	b = SetBool(nullBool)
+	b = model.SetBool(nullBool)
 	if b != nil {
 		t.Error("expected nil")
 	}
@@ -69,7 +70,7 @@ func TestSetBool(t *testing.T) {
 func TestSetNullString(t *testing.T) {
 	s := new(string)
 	*s = "Hello World!"
-	nullString := SetNullString(s)
+	nullString := model.SetNullString(s)
 	if nullString.Valid != true {
 		t.Error("expected true got false")
 	}
@@ -79,7 +80,7 @@ func TestSetNullString(t *testing.T) {
 	}
 
 	s = nil
-	nullString = SetNullString(s)
+	nullString = model.SetNullString(s)
 	if nullString.Valid != false {
 		t.Error("expected false got true")
 	}
@@ -90,7 +91,7 @@ func TestSetString(t *testing.T) {
 		String: "Hello World!",
 		Valid:  true,
 	}
-	s := SetString(nullString)
+	s := model.SetString(nullString)
 	if *s != "Hello World!" {
 		t.Error("expected Hello World!")
 	}
@@ -99,7 +100,7 @@ func TestSetString(t *testing.T) {
 		String: "Does not matter",
 		Valid:  false,
 	}
-	s = SetString(nullString)
+	s = model.SetString(nullString)
 	if s != nil {
 		t.Error("expected nil")
 	}
@@ -108,7 +109,7 @@ func TestSetString(t *testing.T) {
 func TestSetNullInt32(t *testing.T) {
 	i := new(int32)
 	*i = 23
-	nullInt := SetNullInt32(i)
+	nullInt := model.SetNullInt32(i)
 	if nullInt.Valid != true {
 		t.Error("expected true got false")
 	}
@@ -118,7 +119,7 @@ func TestSetNullInt32(t *testing.T) {
 	}
 
 	i = nil
-	nullInt = SetNullInt32(i)
+	nullInt = model.SetNullInt32(i)
 	if nullInt.Valid != false {
 		t.Error("expected false got true")
 	}
@@ -129,7 +130,7 @@ func TestSetInt32(t *testing.T) {
 		Int32: 23,
 		Valid: true,
 	}
-	i := SetInt32(nullInt)
+	i := model.SetInt32(nullInt)
 	if *i != 23 {
 		t.Error("expected 23")
 	}
@@ -138,7 +139,7 @@ func TestSetInt32(t *testing.T) {
 		Int32: 0,
 		Valid: false,
 	}
-	i = SetInt32(nullInt)
+	i = model.SetInt32(nullInt)
 	if i != nil {
 		t.Error("expected nil")
 	}
@@ -147,7 +148,7 @@ func TestSetInt32(t *testing.T) {
 func TestSetNullInt64(t *testing.T) {
 	i := new(int64)
 	*i = 23
-	nullInt := SetNullInt64(i)
+	nullInt := model.SetNullInt64(i)
 	if nullInt.Valid != true {
 		t.Error("expected true got false")
 	}
@@ -157,7 +158,7 @@ func TestSetNullInt64(t *testing.T) {
 	}
 
 	i = nil
-	nullInt = SetNullInt64(i)
+	nullInt = model.SetNullInt64(i)
 	if nullInt.Valid != false {
 		t.Error("expected false got true")
 	}
@@ -168,7 +169,7 @@ func TestSetInt64(t *testing.T) {
 		Int64: 23,
 		Valid: true,
 	}
-	i := SetInt64(nullInt)
+	i := model.SetInt64(nullInt)
 	if *i != 23 {
 		t.Error("expected 23")
 	}
@@ -177,7 +178,7 @@ func TestSetInt64(t *testing.T) {
 		Int64: 0,
 		Valid: false,
 	}
-	i = SetInt64(nullInt)
+	i = model.SetInt64(nullInt)
 	if i != nil {
 		t.Error("expected nil")
 	}
@@ -186,7 +187,7 @@ func TestSetInt64(t *testing.T) {
 func TestSetNullFloat64(t *testing.T) {
 	i := new(float64)
 	*i = 23.45
-	nullInt := SetNullFloat64(i)
+	nullInt := model.SetNullFloat64(i)
 	if nullInt.Valid != true {
 		t.Error("expected true got false")
 	}
@@ -196,7 +197,7 @@ func TestSetNullFloat64(t *testing.T) {
 	}
 
 	i = nil
-	nullInt = SetNullFloat64(i)
+	nullInt = model.SetNullFloat64(i)
 	if nullInt.Valid != false {
 		t.Error("expected false got true")
 	}
@@ -207,7 +208,7 @@ func TestSetFloat64(t *testing.T) {
 		Float64: 23.45,
 		Valid: true,
 	}
-	i := SetFloat64(nullInt)
+	i := model.SetFloat64(nullInt)
 	if *i != 23.45 {
 		t.Error("expected 23")
 	}
@@ -216,7 +217,7 @@ func TestSetFloat64(t *testing.T) {
 		Float64: 0,
 		Valid: false,
 	}
-	i = SetFloat64(nullInt)
+	i = model.SetFloat64(nullInt)
 	if i != nil {
 		t.Error("expected nil")
 	}
@@ -224,7 +225,7 @@ func TestSetFloat64(t *testing.T) {
 
 func TestSetNullTime(t *testing.T) {
 	ti := &time.Time{}
-	nullTime := SetNullTime(ti)
+	nullTime := model.SetNullTime(ti)
 	if nullTime.Valid != true {
 		t.Error("expected true got false")
 	}
@@ -234,7 +235,7 @@ func TestSetNullTime(t *testing.T) {
 	}
 
 	ti = nil
-	nullTime = SetNullTime(ti)
+	nullTime = model.SetNullTime(ti)
 	if nullTime.Valid != false {
 		t.Error("expected false got true")
 	}
@@ -246,7 +247,7 @@ func TestTime(t *testing.T) {
 		Time: now,
 		Valid: true,
 	}
-	ti := SetTime(nullTime)
+	ti := model.SetTime(nullTime)
 	if *ti != now {
 		t.Errorf("expected %s", ti)
 	}
@@ -255,7 +256,7 @@ func TestTime(t *testing.T) {
 		Time: time.Time{},
 		Valid: false,
 	}
-	ti = SetTime(nullTime)
+	ti = model.SetTime(nullTime)
 	if ti != nil {
 		t.Error("expected nil")
 	}

@@ -19,4 +19,4 @@ output
 .idea/
 .vscode
 
-**/github.com/*
+github.com/*

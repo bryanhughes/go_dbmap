@@ -13,9 +13,16 @@
 			<column name="column_f" type="text[]" jt="2003" />
 			<column name="column_g" type="bool[]" jt="2003" />
 			<column name="column_h" type="json[]" jt="2003" />
+			<column name="column_i" type="varchar" jt="12" mandatory="y" />
 			<index name="pk_example_a" unique="PRIMARY_KEY" >
 				<column name="column_a" />
 				<column name="column_b" />
+			</index>
+			<index name="idx_example_a" unique="NORMAL" >
+				<column name="column_c" />
+			</index>
+			<index name="unq_example_a" unique="UNIQUE" >
+				<column name="column_i" />
 			</index>
 		</table>
 		<table name="example_b" >
@@ -320,10 +327,10 @@
 		<entity schema="test_schema" name="address" color="C1D8EE" x="704" y="496" />
 		<entity schema="test_schema" name="user_product_part" color="C1D8EE" x="976" y="80" />
 		<entity schema="public" name="product_parts" color="C1D8EE" x="992" y="272" />
-		<entity schema="public" name="example_a" color="C1D8EE" x="1216" y="480" />
 		<entity schema="public" name="part" color="C1D8EE" x="1232" y="192" />
 		<entity schema="public" name="product" color="C1D8EE" x="656" y="288" />
 		<entity schema="test_schema" name="user" color="C1D8EE" x="672" y="48" />
+		<entity schema="public" name="example_a" color="C1D8EE" x="1216" y="480" />
 		<callout x="48" y="80" pointer="Round" >
 			<comment><![CDATA[This schema is designed to test the mapping from a SQL Schema 
 to Go S/CRUD generated code as well as supporting protobuffers.

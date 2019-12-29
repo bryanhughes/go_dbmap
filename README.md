@@ -8,44 +8,50 @@ tool does not yet support complex many-to-many relationships cleanly.
 Aside from simple CRUD, this tool allows you to generate functions based on any standard SQL query, lookups, and
 transformations. The custom mappings and transformations are very powerful.
 
-Please look at the `example` directory to an example schema and configuration file to generate not just simple
+Please look at the `config` directory to an example configuration file based on the test schema to generate not just simple
 CRUD, but search/lookup operations based on indexed fields, as well as custom mapping queries. 
 
-#### Setting Up Database For Building The Examples
+#### Setting Up Database For Testing and Building Example Code
 
 ```
-$ sudo -u postgres createuser --pwprompt --superuser go_dbmap
-Enter password for new role: go_dbmap
-Enter it again: go_dbmap
-$ psql -U go_dbmap -h localhost -c "CREATE DATABASE go_dbmap WITH OWNER = go_dbmap ENCODING = 'UTF8' TEMPLATE = template0 CONNECTION LIMIT = -1;" postgres
-$ psql -U go_dbmap -h localhost -W -c "CREATE EXTENSION postgis;" go_dbmap
+$ sudo -u postgres createuser --pwprompt --superuser dbmap_test
+Enter password for new role: dbmap_test
+Enter it again: dbmap_test
+$ psql -U dbmap_test -h localhost -c "CREATE DATABASE dbmap_test WITH OWNER = dbmap_test ENCODING = 'UTF8' TEMPLATE = template0 CONNECTION LIMIT = -1;" postgres
+$ psql -U dbmap_test -h localhost -W -c "CREATE EXTENSION postgis;" dbmap_test
 ```
 
 #### Resetting the Example Database
-This helper script will allow you to rapidly drop and recreate your database
+This helper script will allow you to rapidly drop and recreate your database. Currently only postgres is supported.
 
-NOTE: depending on your dev environment, you might have to use your own user name instead of `go_dbmap`
+NOTE: depending on your dev environment, you might have to use your own user name instead of `dbmap_test`
 
-    $ example/bin/reset_db.sh go_dbmap go_dbmap example/sql/example_schema.sql example/sql/example_data.sql
+    $ bin/reset_db.sh postgres dbmap_test
+
+To filter the noisy output, you can just grep for errors. Please note that the DbSchema tool will create a public
+schema that is already present, so you can ignore that error
+
+    $ bin/reset_db.sh postgres dbmap_test | grep error
     
-#### Building the Example
-The project includes an example schema and scripts to build located in the `example` directory. You
-will find the build scripts in `example/bin` to create or reset the example database as well as to generate
-the code in the example schema, which is located in `example/sql`. The schema was generated using [DbSchema](https://www.dbschema.com/).
+#### Running the unit tests
+The unit tests are inline with the code at the end of the modules. Several of them expect that `dbmap_test` database
+has been created.
 
-**PLEASE NOTE:** You will see errors and warnings in the output. This is intentional as the example schema includes a
+    $ go test
+
+Run the tests again after you have generate the example code to then test the generated code `user_db` against the
+`user` table to make sure everything works.
+
+#### Building the Example
+The project includes a fairly comprehensive test schema and scripts to build located in the `fdatabase` directory. You
+will find the build scripts in `bin` to create or reset the example database as well as to generate
+the code in the test schema SQL, which is located in each of the supported databases. The schema was generated
+using [DbSchema](https://www.dbschema.com/).
+
+**PLEASE NOTE:** You will see errors and warnings in the output. This is intentional as the test schema includes a
 lot of corner cases, like a table without a primary key.
 
-#### Running the unit tests
-The unit tests are inline with the code at the end of the modules. Several of them expect that go_dbmap database
-from the example directory to have been built.
-
-    rebar3 eunit
-    
-You can run the eunit tests again after your generate the example code to then test the generated code `user_db` against the
-`user` table to make sure everything works.
-    
-#### Testing the Generated Code    
+#### Testing the Generated Code
 Please note that there are two eunit tests which will test the generated code. They are located in `go_dbmap` and are 
 called `crud_test` and `change_id_test`.
     
@@ -55,8 +61,8 @@ Include this as a dependency in your `rebar.config`. I would recommend that you 
 `generate_code.sh` to your project and modify accordingly. You will need to run this the first time, and
 any other time you alter your database schema. 
 
-### go_dbmap.config
-You will want to look at [example/config/go_dbmap.config](example/config/go_dbmap.config) as a guide
+### go_dbmap.yml
+You will want to look at [config/go_dbmap.config](config/go_dbmap.config) as a guide
 for your own YAML config. It gives a complete example with inline documentation of the current functionality of the tool.
 
 `go_dbmap` provides you a lot of options for how to generate the code. As mentioned previously, `go_dbmap`
@@ -103,17 +109,24 @@ Custom query mappings will generate a function that will return a result map of 
 query. For UPDATE and DELETE, it will return the operations response. If you have any questions, you can build the
 example code and review the generated code.
 
+`go_dbmap` needs some information when defining the mappings. Any bind parameter that you would normally write the
+query with a place holder (like `$` for Postgres), you will need to expand what the name of the argument and its
+expected type. The code generator will then use these in the mappings. Currently `go_dbmap` does not parse queries
+to extract the native data type in the schema directly.
+
 ```yaml
   mapping:
     -
       table: "test_schema.user"
       queries:
         -
-          name: "get_pword_hash"
-          query: "SELECT pword_hash FROM test_schema.user WHERE email = $1"
-        -
           name: "update_pword_hash"
-          query: "UPDATE test_schema.user SET pword_hash = $2 WHERE email = $1"
+          query: "UPDATE test_schema.user SET pword_hash = $pwordHash:string WHERE email = $email:string"
+        -
+          name: "get_pword_hash"
+          query: "SELECT pword_hash FROM test_schema.user WHERE email = $email:string"
+          
+    <snip>
 ```
 
 Finally `go_dbmap` supports applying transformations to values as they are read and written from the data 
@@ -164,31 +177,50 @@ The following demonstrates how to support lat,lon in with a postgis geography co
             xform: "1"
 ```
 
-Following the same pattern of a list of tables with a list of tuples. In the case of converting a `lat` and `lon` to a 
-`geography`, you must define each of the operations insert/create, update, and select/read on how the column values will
-be handled to and from the database. The result is that the columns `lat` and `lon` will be generated as `virtual` 
-columns in the mapping. Note that when referencing them in the function body (the second element of the tuple), you will
-need to prepend them with the `$` so that `go_dbmap` knows they are the virtual columns being operated on. 
+In the case of converting a `lat` and `lon` to a `geography`, you must define each of the operations insert/create,
+update, and select/read on how the column values will be handled to and from the database. The result is that the
+columns `lat` and `lon` will be generated as `virtual` columns in the mapping. Note that when referencing them in
+the function body (the second element of the tuple), you will need to prepend them with the `$` so that `go_dbmap`
+knows they are the virtual columns being operated on.
 
 For the `insert` operation, a single tuple is defined which will result in the extension function 
 `ST_POINT($lat, $lon)::geography` to be applied to the bind values of the `INSERT` statement. Resulting in the 
 following code:
 
 ```gotemplate
-    const insertStr = "INSERT INTO test_schema.user (first_name, last_name, email, user_token, enabled, aka_id, geog) VALUES ($1, $2, $3, $4, $5, $6, ST_POINT($7, $8)::geography) RETURNING user_id, first_name, last_name, email, user_token, enabled, aka_id, ST_Y(geog::geometry) AS lat, ST_X(geog::geometry) AS lon"
+    const insertStr = "INSERT INTO test_schema.user (first_name, last_name, email, user_token, enabled, aka_id, geog) VALUES ($1, $2, $3, $4, $5, $6, ST_POINT($7, $8)::geography) RETURNING user_id, first_name, last_name, email, user_token, enabled, aka_id, ST_X(geog::geometry) AS lon, ST_Y(geog::geometry) AS lat"
 ```
 and
 ```
-create(M = #{first_name := FirstName, last_name := LastName, email := Email, user_token := UserToken, enabled := Enabled, lat := Lat, lon := Long}) when is_map(M) ->
-    Params = [FirstName, LastName, Email, UserToken, Enabled, Lat, Long],
-    case pgo:query(?INSERT, Params) of
-        #{command := insert, num_rows := 1, rows := [{UserId}]} ->
-            {ok, M#{user_id => UserId, change_id => 0}};
-        {error, Reason} ->
-            {error, Reason}
-    end;
-create(_M) ->
-    {error, invalid_map}.
+func (m *User) Create(db *sql.DB) (err error) {
+	if err := validateNotNulls(m); err != nil {
+		log.Print(err)
+		return err
+	}
+
+	nullable := toNullableUser(m)
+	rows, err := db.Query(insertStr, nullable.firstName, nullable.lastName, nullable.email, nullable.userToken, nullable.enabled, nullable.akaId, nullable.lon, nullable.lat)
+	if err != nil {
+		log.Print(err)
+		return err
+	}
+	defer rows.Close()
+
+	var returning = nullableUser{}
+	rows.Next()
+	if err := rows.Scan(&returning.userId, &returning.firstName, &returning.lastName, &returning.email, &returning.userToken, &returning.enabled, &returning.akaId, &returning.lon, &returning.lat); err != nil {
+		log.Print(err)
+		return err
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Print(err)
+		return err
+	}
+
+	fromNullableUser(m, returning)
+	return nil
+}
 ```
 
 I would recommend that you build the example project and then review the generated code for `user_db.go` to get a better
@@ -200,7 +232,8 @@ or need to apply other functions, you will need to use this feature.
 Generating Protobuffers
 ---
 go_dbmap will generate protobuffers that map to the relational schema including foreign key relationships. The tool
-correctly handles relationships across schemas. 
+correctly handles relationships across schemas. The generated `Go` code then requires compiled protobuffer code, so
+`user_db.go` requires `user_pb.go`.
 
 *TODO:*
 While the tool will handle many-to-many relationships through the join table, it does not yet add the relating message 
@@ -216,7 +249,7 @@ naming collisions due to tables with the same names in different schemas by appe
 at 1. A namespace of schema_table was considered, but rejected for the time being due to the very lon field names that
 can be generated.
 
-It is recommended that you download and install the protocol buffer compiler. If you are new to protocol buffers, start
+It is recommended that you download and install the latest protocol buffer compiler. If you are new to protocol buffers, start
 [by reading the developer docs](https://developers.google.com/protocol-buffers/).
 
 Using In Your Project
