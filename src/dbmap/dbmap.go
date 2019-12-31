@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"gopkg.in/yaml.v3"
-	"log"
 	"os"
 )
 
@@ -26,9 +25,11 @@ type Config struct {
 		Suffix string `yaml:"suffix"`
 		Lang   string `yaml:"lang"`
 	} `yaml:"output"`
+	EmbedRelationships bool `yaml:"embed_relationships"`
 	Proto struct {
 		Path        string `yaml:"path"`
 		JavaPackage string `yaml:"java_package"`
+		ObjCPrefix  string `yaml:"objc_prefix"`
 		Version     string `yaml:"version"`
 	} `yaml:"proto"`
 	Generator struct {
@@ -69,12 +70,40 @@ type Config struct {
 	} `yaml:"generator"`
 }
 
-// The structure of an index needed to generate lookup functions based on alternate keys and indexes
+type RelationType int
+
+const (
+	ZeroOneOrMore RelationType = 0
+	ManyToMany    RelationType = 1 // These are not supported because of the implicit cycles
+)
+
+type ForeignColumns struct {
+	ForeignColumn   string
+	LocalColumn     string
+	OrdinalPosition int32
+}
+
+type ForeignRelation struct {
+	ForeignSchema string
+	ForeignTable  string
+	MapName		  string
+	Columns       []ForeignColumns
+	RelationType  RelationType
+}
+
+type IndexType int
+
+const (
+	PrimaryKey IndexType = 0
+	Unique     IndexType = 1
+	NonUnique  IndexType = 2
+)
+
 type Index struct {
 	TableSchema string
 	TableName   string
 	IndexName   string
-	IndexType   string
+	IndexType   IndexType
 	Columns     []string
 }
 
@@ -98,6 +127,7 @@ type Table struct {
 	TableSchema string
 	Columns     []Column
 	Indexes     []Index
+	Relations   []ForeignRelation
 }
 
 // The structure of a schema
@@ -108,8 +138,8 @@ type Schema struct {
 
 // The current database and the schema's we will generate code against
 type Database struct {
-	DB         *sql.DB
-	Schemas		[]Schema
+	DB      *sql.DB
+	Schemas []Schema
 }
 
 type Provider interface {
@@ -133,45 +163,4 @@ func ReadFile(cfg *Config, configFile string) {
 func processError(err error) {
 	fmt.Println(err)
 	os.Exit(2)
-}
-
-func ReadResults(rows *sql.Rows, err error) (results []map[string]interface{}, err_out error) {
-	if err != nil {
-		log.Print(err)
-		return nil, err
-	}
-	defer rows.Close()
-
-	results = make([]map[string]interface{}, 0)
-	cols, _ := rows.Columns()
-	for rows.Next() {
-		columns := make([]interface{}, len(cols))
-		columnPointers := make([]interface{}, len(cols))
-		for i := range columns {
-			columnPointers[i] = &columns[i]
-		}
-
-		if err := rows.Scan(columnPointers...); err != nil {
-			log.Print(err)
-			return nil, err
-		}
-
-		if err := rows.Err(); err != nil {
-			log.Print(err)
-			return nil, err
-		}
-
-		m := make(map[string]interface{})
-		for i, colName := range cols {
-			val := columnPointers[i].(*interface{})
-			m[colName] = *val
-		}
-		results = append(results, m)
-	}
-
-	return results, nil
-}
-
-func GenerateCode(database *Database) {
-
 }

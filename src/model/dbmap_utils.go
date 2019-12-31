@@ -2,6 +2,7 @@ package model
 
 import (
 	"database/sql"
+	"log"
 	"time"
 )
 
@@ -135,4 +136,41 @@ func SetTime(t sql.NullTime) *time.Time {
 	} else {
 		return nil
 	}
+}
+
+func ReadResults(rows *sql.Rows, err error) (results []map[string]interface{}, err_out error) {
+	if err != nil {
+		log.Print(err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	results = make([]map[string]interface{}, 0)
+	cols, _ := rows.Columns()
+	for rows.Next() {
+		columns := make([]interface{}, len(cols))
+		columnPointers := make([]interface{}, len(cols))
+		for i := range columns {
+			columnPointers[i] = &columns[i]
+		}
+
+		if err := rows.Scan(columnPointers...); err != nil {
+			log.Print(err)
+			return nil, err
+		}
+
+		if err := rows.Err(); err != nil {
+			log.Print(err)
+			return nil, err
+		}
+
+		m := make(map[string]interface{})
+		for i, colName := range cols {
+			val := columnPointers[i].(*interface{})
+			m[colName] = *val
+		}
+		results = append(results, m)
+	}
+
+	return results, nil
 }

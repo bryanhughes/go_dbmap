@@ -75,9 +75,9 @@ CREATE TABLE "public".product_parts (
 COMMENT ON TABLE "public".product_parts IS 'This table represents a many to many relationship between two different entities.\n\n#service: product';
 
 CREATE TABLE "public".example_b ( 
-	column_1             integer  NOT NULL ,
 	column_a             varchar  NOT NULL ,
-	column_b             varchar  NOT NULL ,
+	column_b1            varchar  NOT NULL ,
+	column_1             integer  NOT NULL ,
 	test_id              integer   ,
 	p_bar                varchar   ,
 	t_bar                varchar   ,
@@ -216,7 +216,7 @@ COMMENT ON TABLE test_schema.user_product_part IS '#service: user';
 
 COMMENT ON COLUMN test_schema.user_product_part.inserted_on IS 'The UNIX epoch';
 
-ALTER TABLE "public".example_b ADD CONSTRAINT fk_example_b_example_a FOREIGN KEY ( column_a, column_b ) REFERENCES "public".example_a( column_a, column_b );
+ALTER TABLE "public".example_b ADD CONSTRAINT fk_example_b_example_a FOREIGN KEY ( column_a, column_b1 ) REFERENCES "public".example_a( column_a, column_b );
 
 ALTER TABLE "public".example_b ADD CONSTRAINT fk_example_b_test_table_pkey FOREIGN KEY ( test_id ) REFERENCES test_schema.test_table_pkey( id );
 

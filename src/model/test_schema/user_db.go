@@ -262,37 +262,8 @@ func GetPasswordHash(db *sql.DB, hash *string) (results []map[string]interface{}
 		return nil, err
 	}
 	defer rows.Close()
-
-	results = make([]map[string]interface{}, 0)
-	cols, _ := rows.Columns()
-	for rows.Next() {
-		columns := make([]interface{}, len(cols))
-		columnPointers := make([]interface{}, len(cols))
-		for i := range columns {
-			columnPointers[i] = &columns[i]
-		}
-
-		if err := rows.Scan(columnPointers...); err != nil {
-			log.Print(err)
-			return nil, err
-		}
-
-		if err := rows.Err(); err != nil {
-			log.Print(err)
-			return nil, err
-		}
-
-		m := make(map[string]interface{})
-		for i, colName := range cols {
-			val := columnPointers[i].(*interface{})
-			m[colName] = *val
-		}
-		results = append(results, m)
-	}
-
-	return results, nil
+	return model.ReadResults(rows, err)
 }
-
 
 func FindNearest(db *sql.DB, lon float64, lat float64, radius int64) (results []map[string]interface{}, err error) {
 	rows, err := db.Query(customMappings["FindNearest"], lon, lat, radius)
@@ -301,35 +272,7 @@ func FindNearest(db *sql.DB, lon float64, lat float64, radius int64) (results []
 		return nil, err
 	}
 	defer rows.Close()
-
-	results = make([]map[string]interface{}, 0)
-	cols, _ := rows.Columns()
-	for rows.Next() {
-		columns := make([]interface{}, len(cols))
-		columnPointers := make([]interface{}, len(cols))
-		for i := range columns {
-			columnPointers[i] = &columns[i]
-		}
-
-		if err := rows.Scan(columnPointers...); err != nil {
-			log.Print(err)
-			return nil, err
-		}
-
-		if err := rows.Err(); err != nil {
-			log.Print(err)
-			return nil, err
-		}
-
-		m := make(map[string]interface{})
-		for i, colName := range cols {
-			val := columnPointers[i].(*interface{})
-			m[colName] = *val
-		}
-		results = append(results, m)
-	}
-
-	return results, nil
+	return model.ReadResults(rows, err)
 }
 
 func SetToken(db *sql.DB, userId int32) (results []map[string]interface{}, err error) {
@@ -339,36 +282,7 @@ func SetToken(db *sql.DB, userId int32) (results []map[string]interface{}, err e
 		return nil, err
 	}
 	defer rows.Close()
-
-	results = make([]map[string]interface{}, 0)
-	cols, _ := rows.Columns()
-	for rows.Next() {
-		columns := make([]interface{}, len(cols))
-		columnPointers := make([]interface{}, len(cols))
-		for i := range columns {
-			columnPointers[i] = &columns[i]
-		}
-
-		if err := rows.Scan(columnPointers...); err != nil {
-			log.Print(err)
-			return nil, err
-		}
-
-		if err := rows.Err(); err != nil {
-			log.Print(err)
-			return nil, err
-		}
-
-		m := make(map[string]interface{})
-		for i, colName := range cols {
-			val := columnPointers[i].(*interface{})
-			m[colName] = *val
-		}
-		results = append(results, m)
-	}
-
-	return results, nil
-}
+	return model.ReadResults(rows, err)}
 
 func DisableUser(db *sql.DB, userId int32) (results []map[string]interface{}, err error) {
 	rows, err := db.Query(customMappings["DisableUser"], userId)
@@ -377,33 +291,5 @@ func DisableUser(db *sql.DB, userId int32) (results []map[string]interface{}, er
 		return nil, err
 	}
 	defer rows.Close()
-
-	results = make([]map[string]interface{}, 0)
-	cols, _ := rows.Columns()
-	for rows.Next() {
-		columns := make([]interface{}, len(cols))
-		columnPointers := make([]interface{}, len(cols))
-		for i := range columns {
-			columnPointers[i] = &columns[i]
-		}
-
-		if err := rows.Scan(columnPointers...); err != nil {
-			log.Print(err)
-			return nil, err
-		}
-
-		if err := rows.Err(); err != nil {
-			log.Print(err)
-			return nil, err
-		}
-
-		m := make(map[string]interface{})
-		for i, colName := range cols {
-			val := columnPointers[i].(*interface{})
-			m[colName] = *val
-		}
-		results = append(results, m)
-	}
-
-	return results, nil
+	return model.ReadResults(rows, err)
 }

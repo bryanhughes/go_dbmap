@@ -10,7 +10,7 @@ import (
 
 
 func main() {
-	fmt.Println("Go DB Mapping Code Mapping")
+	fmt.Println("Go DB Code Mapping")
 	fmt.Println("=========================================================================")
 
 	args := os.Args[1:]
@@ -32,9 +32,17 @@ func main() {
 	fmt.Println("=========================================================================")
 	database := provider.ReadDatabase()
 
+	fmt.Println("\nGenerating Protos")
+	fmt.Println("=========================================================================")
+	if err := dbmap.GenerateProto(cfg, database); err != nil {
+		os.Exit(-1)
+	}
+
 	fmt.Println("\nGenerating Code")
 	fmt.Println("=========================================================================")
-	dbmap.GenerateCode(database)
+	if err := dbmap.GenerateCode(cfg, database); err != nil {
+		os.Exit(-1)
+	}
 }
 
 func showUsage() {

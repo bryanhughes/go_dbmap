@@ -4,9 +4,11 @@ import (
 	"testing"
 )
 
+const TestConfig = "src/dbmap/postgres/test_config.yml"
+
 func TestReadConfig(t *testing.T) {
 	var cfg Config
- 	ReadFile(&cfg, "test_config.yml")
+	ReadFile(&cfg, TestConfig)
 
 	testDatabase(cfg, t)
 	testOutput(cfg, t)

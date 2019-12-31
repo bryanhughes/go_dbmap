@@ -5,14 +5,18 @@ database:
   provider: "postgres"
   host: "localhost"
   port: 5432
-  database: "go_dbmap"
-  user: "go_dbmap"
-  password: "go_dbmap"
+  database: "dbmap_test"
+  user: "dbmap_test"
+  password: "dbmap_test"
 
 output:
   path: "output"
   suffix: "_db"
   lang: "go"
+
+# Embed foreign relationships.
+# NOTE: when using this feature, your relationships MUST BE acyclic
+embed_relationships: true
 
 # Working with protobuffers: go_dbmap will generate either proto2 or proto3 files. It is important to
 # understand that you should specify proto2 when mapping between a relational database where NULL is an valid value and
@@ -25,6 +29,7 @@ output:
 proto:
   path: "output/proto"
   java_package: "com.example"
+  objc_prefix: "DBMAP"
   version: "proto2"
 
 # go_dbmap will read all the tables in one or more schema's. When generating the Go code, each module will be

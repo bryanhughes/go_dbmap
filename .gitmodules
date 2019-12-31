@@ -1,0 +1,9 @@
+[submodule "src/github.com/golang/protobuf"]
+	path = src/github.com/golang/protobuf
+	url = git://github.com/golang/protobuf
+[submodule "src/github.com/google/uuid"]
+	path = src/github.com/google/uuid
+	url = git://github.com/google/uuid
+[submodule "src/github.com/iancoleman/strcase"]
+	path = src/github.com/iancoleman/strcase
+	url = git://github.com/iancoleman/strcase
