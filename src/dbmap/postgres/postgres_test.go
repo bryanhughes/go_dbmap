@@ -2,7 +2,7 @@ package postgres
 
 import (
 	"database/sql"
-	"dbmap"
+	"github.com/bryanhughes/go_dbmap/src/dbmap"
 	"testing"
 	"time"
 )
@@ -356,8 +356,7 @@ func TestIsColumnExcluded(t *testing.T) {
 		IsPrimaryKey:    false,
 	}
 
-	if ! isColumnExcluded(column, &provider) {
+	if !isColumnExcluded(column, &provider) {
 		t.Fatal("Column should be exclulded")
 	}
 }
-

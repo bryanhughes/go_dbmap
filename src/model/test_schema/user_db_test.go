@@ -2,8 +2,8 @@ package test_schema
 
 import (
 	"database/sql"
-	"dbmap"
 	"fmt"
+	"github.com/bryanhughes/go_dbmap/src/dbmap"
 	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
@@ -73,10 +73,16 @@ func cleanTables(db *sql.DB, tables []string) error {
 		rows, err := db.Query("DELETE FROM " + tableName)
 		if err != nil {
 			log.Print(err)
-			rows.Close()
+			err := rows.Close()
+			if err != nil {
+				return err
+			}
 			return err
 		}
-		rows.Close()
+		err1 := rows.Close()
+		if err1 != nil {
+			return err1
+		}
 	}
 	return nil
 }
@@ -87,7 +93,7 @@ func TestAll(t *testing.T) {
 	teardownTestCase := setupTestCase(t)
 	defer teardownTestCase(t)
 
-	badUser := User{FirstName: proto.String("Bryan"), LastName: proto.String("Hughes"), Email: proto.String("bh@gmail.com") }
+	badUser := User{FirstName: proto.String("Bryan"), LastName: proto.String("Hughes"), Email: proto.String("bh@gmail.com")}
 	if err := badUser.Create(db); err == nil {
 		t.Fatal("Failed to catch error")
 	}
@@ -120,7 +126,7 @@ func TestAll(t *testing.T) {
 			t.Fatalf("Failed to read user record. Got back a nil UserId instead of %d - %s", user.UserId, err)
 		}
 
-		if ! reflect.DeepEqual(user, user1) {
+		if !reflect.DeepEqual(user, user1) {
 			t.Fatal("user an user1 are not equal")
 		}
 
@@ -165,13 +171,13 @@ func TestAll(t *testing.T) {
 		t.Fatalf("Failed to lookup user record. Got back a nil UserId instead of %d - %s", user1.UserId, err)
 	}
 
-	if ! reflect.DeepEqual(user, user1) {
+	if !reflect.DeepEqual(user, user1) {
 		t.Fatal("lookup up does not match")
 	}
 
 	var list []User
 	var cnt int32
-	list, cnt, err = ListUsers(db,100, 0)
+	list, cnt, err = ListUsers(db, 100, 0)
 
 	if len(list) != 4 {
 		t.Fatalf("Expected 4 users but got %d", len(list))
@@ -196,11 +202,11 @@ func TestAll(t *testing.T) {
 	}
 
 	v := results[0]["pword_hash"]
-	if ! reflect.DeepEqual(v, bvalue) {
+	if !reflect.DeepEqual(v, bvalue) {
 		t.Fatalf("Got %s instead of %s", v, u)
 	}
 
-	results, err = FindNearest(db, -122.388983, 37.763964, 5 )
+	results, err = FindNearest(db, -122.388983, 37.763964, 5)
 	if results == nil {
 		t.Fatalf("Expected a non nil result - %s", err)
 	}
@@ -216,7 +222,7 @@ func TestAll(t *testing.T) {
 		t.Fatalf("Got %d instead of %d", v1, *user.UserId)
 	}
 
-	results, err = SetToken(db, *user.UserId )
+	results, err = SetToken(db, *user.UserId)
 	if results == nil {
 		t.Fatalf("Expected a non nil result - %s", err)
 	}
@@ -231,7 +237,7 @@ func TestAll(t *testing.T) {
 		t.Fatal("Expected a UUID string which is 36 byte/chars")
 	}
 
-	results, err = DisableUser(db, *user.UserId )
+	results, err = DisableUser(db, *user.UserId)
 	if results == nil {
 		t.Fatalf("Expected a non nil result - %s", err)
 	}

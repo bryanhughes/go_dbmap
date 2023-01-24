@@ -2,8 +2,8 @@ package postgres
 
 import (
 	"database/sql"
-	"dbmap"
 	"fmt"
+	"github.com/bryanhughes/go_dbmap/src/dbmap"
 	"github.com/lib/pq"
 	"log"
 	"time"
@@ -229,7 +229,7 @@ func readColumns(db *sql.DB, provider *Provider, table *dbmap.Table) (err error)
 
 func isColumnExcluded(column dbmap.Column, provider *Provider) bool {
 	for _, excludedColumn := range provider.Generator.ExcludedColumns {
-		if excludedColumn.Tablename == column.TableSchema + "." + column.TableName {
+		if excludedColumn.Tablename == column.TableSchema+"."+column.TableName {
 			for _, c := range excludedColumn.Columns {
 				if c == column.ColumnName {
 					return true
@@ -289,7 +289,7 @@ func readIndexes(db *sql.DB, provider *Provider, table *dbmap.Table) (err error)
 		workingIndex = indexName
 		columns = append(columns, columnName)
 	}
-	if ! firstTime {
+	if !firstTime {
 		index.Columns = columns
 		indexes = append(indexes, index)
 	}
@@ -350,7 +350,7 @@ func readForeignRelationships(db *sql.DB, provider *Provider, table *dbmap.Table
 			OrdinalPosition: oPos,
 		})
 	}
-	if ! firstTime {
+	if !firstTime {
 		relation.Columns = columns
 		relations = append(relations, relation)
 	}

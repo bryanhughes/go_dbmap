@@ -3,8 +3,8 @@ package test_schema
 import (
 	"database/sql"
 	"errors"
+	"github.com/bryanhughes/go_dbmap/src/model"
 	"log"
-	"model"
 )
 
 // Standard CRUD
@@ -33,7 +33,7 @@ type nullableUser struct {
 	userId    sql.NullInt32   // Serial data types MUST be Nullable even though they are the primary key
 	firstName sql.NullString  // Nullable
 	lastName  sql.NullString  // Nullable
-	email     string		  // Not Null
+	email     string          // Not Null
 	userToken string          // Not Null
 	enabled   bool            // Not Null
 	akaId     sql.NullInt32   // Nullable
@@ -83,7 +83,6 @@ func fromNullableUser(user *User, nUser nullableUser) {
 	user.Lon = model.SetFloat64(nUser.lon)
 }
 
-// Create
 func (m *User) Create(db *sql.DB) (err error) {
 	if err := validateNotNulls(m); err != nil {
 		log.Print(err)
@@ -96,7 +95,12 @@ func (m *User) Create(db *sql.DB) (err error) {
 		log.Print(err)
 		return err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Print(err)
+		}
+	}(rows)
 
 	var returning = nullableUser{}
 	rows.Next()
@@ -129,7 +133,12 @@ func (m *User) Read(db *sql.DB, userId *int32) (err error) {
 		log.Print(err)
 		return err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Print(err)
+		}
+	}(rows)
 
 	var returning = nullableUser{}
 	if rows.Next() {
@@ -163,7 +172,12 @@ func (m *User) Update(db *sql.DB) (err error) {
 		log.Print(err)
 		return err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Print(err)
+		}
+	}(rows)
 
 	var returning = nullableUser{}
 	rows.Next()
@@ -197,7 +211,12 @@ func ListUsers(db *sql.DB, limit int32, offset int32) (user []User, count int32,
 		log.Print(err)
 		return []User{}, 0, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Print(err)
+		}
+	}(rows)
 
 	count = 1
 	var results []User
@@ -223,7 +242,12 @@ func (m *User) LookupEmail(db *sql.DB, email *string) (err error) {
 		log.Print(err)
 		return err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Print(err)
+		}
+	}(rows)
 
 	var returning = nullableUser{}
 	if rows.Next() {
@@ -261,7 +285,12 @@ func GetPasswordHash(db *sql.DB, hash *string) (results []map[string]interface{}
 		log.Print(err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Print(err)
+		}
+	}(rows)
 	return model.ReadResults(rows, err)
 }
 
@@ -271,7 +300,12 @@ func FindNearest(db *sql.DB, lon float64, lat float64, radius int64) (results []
 		log.Print(err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Print(err)
+		}
+	}(rows)
 	return model.ReadResults(rows, err)
 }
 
@@ -281,8 +315,14 @@ func SetToken(db *sql.DB, userId int32) (results []map[string]interface{}, err e
 		log.Print(err)
 		return nil, err
 	}
-	defer rows.Close()
-	return model.ReadResults(rows, err)}
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Print(err)
+		}
+	}(rows)
+	return model.ReadResults(rows, err)
+}
 
 func DisableUser(db *sql.DB, userId int32) (results []map[string]interface{}, err error) {
 	rows, err := db.Query(customMappings["DisableUser"], userId)
@@ -290,6 +330,11 @@ func DisableUser(db *sql.DB, userId int32) (results []map[string]interface{}, er
 		log.Print(err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Print(err)
+		}
+	}(rows)
 	return model.ReadResults(rows, err)
 }

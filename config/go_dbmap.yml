@@ -46,7 +46,7 @@ generator:
   excluded_tables: ["excluded", "spatial_ref_sys"]
 
   # Setting this to true will result in a method generated for any index whose name is prefixed with 'lookup_'. You
-  # should only apply this to non foreign key and primary key indexes those are handled differently by go_dbmap. For
+  # should only apply this to non-foreign key and primary key indexes those are handled differently by go_dbmap. For
   # indexes that you do NOT want generated as accessors, do not append their name with the keyword.
 
   indexed_lookups: true

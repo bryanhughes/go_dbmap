@@ -138,12 +138,17 @@ func SetTime(t sql.NullTime) *time.Time {
 	}
 }
 
-func ReadResults(rows *sql.Rows, err error) (results []map[string]interface{}, err_out error) {
+func ReadResults(rows *sql.Rows, err error) (results []map[string]interface{}, errOut error) {
 	if err != nil {
 		log.Print(err)
 		return nil, err
 	}
-	defer rows.Close()
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+			log.Print(err)
+		}
+	}(rows)
 
 	results = make([]map[string]interface{}, 0)
 	cols, _ := rows.Columns()

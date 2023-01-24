@@ -1,13 +1,12 @@
 package main
 
 import (
-	"dbmap"
-	"dbmap/mariadb"
-	"dbmap/postgres"
 	"fmt"
+	"github.com/bryanhughes/go_dbmap/src/dbmap"
+	"github.com/bryanhughes/go_dbmap/src/dbmap/mariadb"
+	"github.com/bryanhughes/go_dbmap/src/dbmap/postgres"
 	"os"
 )
-
 
 func main() {
 	fmt.Println("Go DB Code Mapping")
@@ -24,9 +23,9 @@ func main() {
 
 	var provider dbmap.Provider
 	if cfg.Database.Provider == "postgres" {
-		provider = &postgres.Provider{cfg}
+		provider = &postgres.Provider{Config: cfg}
 	} else {
-		provider = &mariadb.Provider{cfg}
+		provider = &mariadb.Provider{Config: cfg}
 	}
 	fmt.Println("\nReading Schemas")
 	fmt.Println("=========================================================================")
@@ -50,5 +49,3 @@ func showUsage() {
 	fmt.Println("usage: go_dbmap <config-file>")
 	os.Exit(-1)
 }
-
-

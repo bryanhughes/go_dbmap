@@ -2,8 +2,8 @@ package mariadb
 
 import (
 	"database/sql"
-	"dbmap"
 	"fmt"
+	"github.com/bryanhughes/go_dbmap/src/dbmap"
 	_ "github.com/lib/pq"
 	"log"
 )

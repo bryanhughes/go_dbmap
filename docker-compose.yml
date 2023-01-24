@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgis/postgis:latest
+    container_name: example-db
+    restart: always
+    environment:
+      - DATABASE_HOST=127.0.0.1
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=dbmap_test
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./database/init.sql:/docker-entrypoint-initdb.d/1-init.sql
+      - ./database/postgres/test_schema.sql:/docker-entrypoint-initdb.d/2-test_schema.sql
+      - ./database/test_data.sql:/docker-entrypoint-initdb.d/3-test_data.sql

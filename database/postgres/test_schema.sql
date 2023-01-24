@@ -1,5 +1,3 @@
-CREATE SCHEMA "public";
-
 CREATE SCHEMA test_schema;
 
 CREATE TABLE "public".example_a ( 

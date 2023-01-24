@@ -2,7 +2,7 @@ package model
 
 import (
 	"database/sql"
-	"model"
+	"github.com/bryanhughes/go_dbmap/src/model"
 	"testing"
 	"time"
 )
@@ -206,7 +206,7 @@ func TestSetNullFloat64(t *testing.T) {
 func TestSetFloat64(t *testing.T) {
 	nullInt := sql.NullFloat64{
 		Float64: 23.45,
-		Valid: true,
+		Valid:   true,
 	}
 	i := model.SetFloat64(nullInt)
 	if *i != 23.45 {
@@ -215,7 +215,7 @@ func TestSetFloat64(t *testing.T) {
 
 	nullInt = sql.NullFloat64{
 		Float64: 0,
-		Valid: false,
+		Valid:   false,
 	}
 	i = model.SetFloat64(nullInt)
 	if i != nil {
@@ -244,7 +244,7 @@ func TestSetNullTime(t *testing.T) {
 func TestTime(t *testing.T) {
 	now := time.Now()
 	nullTime := sql.NullTime{
-		Time: now,
+		Time:  now,
 		Valid: true,
 	}
 	ti := model.SetTime(nullTime)
@@ -253,7 +253,7 @@ func TestTime(t *testing.T) {
 	}
 
 	nullTime = sql.NullTime{
-		Time: time.Time{},
+		Time:  time.Time{},
 		Valid: false,
 	}
 	ti = model.SetTime(nullTime)

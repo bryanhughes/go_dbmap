@@ -10,7 +10,7 @@ import (
 
 var InvalidArguments = errors.New("invalid argument")
 
-// The expected YAML configuration for generating code based on a database schema
+// Config The expected YAML configuration for generating code based on a database schema
 type Config struct {
 	Database struct {
 		Provider string `yaml:"provider"`
@@ -26,7 +26,7 @@ type Config struct {
 		Lang   string `yaml:"lang"`
 	} `yaml:"output"`
 	EmbedRelationships bool `yaml:"embed_relationships"`
-	Proto struct {
+	Proto              struct {
 		Path        string `yaml:"path"`
 		JavaPackage string `yaml:"java_package"`
 		ObjCPrefix  string `yaml:"objc_prefix"`
@@ -86,7 +86,7 @@ type ForeignColumns struct {
 type ForeignRelation struct {
 	ForeignSchema string
 	ForeignTable  string
-	MapName		  string
+	MapName       string
 	Columns       []ForeignColumns
 	RelationType  RelationType
 }
@@ -107,7 +107,7 @@ type Index struct {
 	Columns     []string
 }
 
-// The structure of a column
+// Column The structure of a column
 type Column struct {
 	TableName       string
 	TableSchema     string
